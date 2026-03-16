@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{YOUR_PROJECT_GUID}</ProjectGuid>
+    <RootNamespace>NppImapDraft</RootNamespace>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <OutputType>DynamicLibrary</OutputType>
+    <TargetName>NppImapDraft</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Optimization>MaxSpeed</Optimization>
+    <WarningLevel>Level3</WarningLevel>
+    <OutputPath>bin\Release\</OutputPath>
+    <IntermediatePath>obj\Release\</IntermediatePath>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClCompile Include="**\*.cpp" />
+    <ClCompile Include="**\*.c" />
+    <Include>include;path/to/openssl/include</Include>
+  </ItemGroup>
+  <ItemGroup>
+    <Link>
+      <AdditionalDependencies>openssl.lib;crypt32.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>lib;path/to/openssl/lib</AdditionalLibraryDirectories>
+      <OutputFile>$(TargetDir)$(TargetName).dll</OutputFile>
+    </Link>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="path/to/NotepadPlusPlus.lib" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
