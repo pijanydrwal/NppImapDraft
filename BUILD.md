@@ -1,60 +1,86 @@
-# Building NppImapDraft Plugin
+# NppImapDraft - Build Instructions
 
-This document provides a step-by-step guide to compiling the `NppImapDraft.dll` plugin for Notepad++. Follow the sections below to set up your environment, compile the plugin, and install it in Notepad++.
+## What is this?
 
-## Prerequisites
+A Notepad++ plugin that syncs open files as EML messages to an IMAP **Drafts** folder.
+Useful for keeping code/text notes accessible via email client.
 
-Before you start, make sure you have the following tools installed on your system:
+## Requirements
 
-1. **Git**:
-   - Download and install from [git-scm.com](https://git-scm.com/).
+- Visual Studio 2019 or 2022 (Community is fine)
+- Windows SDK 10.x
+- OpenSSL for Windows (optional, needed for SSL/IMAP port 993)
+  - Download: https://slproweb.com/products/Win32OpenSSL.html
+  - Or compile without SSL using `IMAP_NO_SSL` define (port 143 only)
 
-2. **Visual Studio**:
-   - Install the latest version of [Visual Studio](https://visualstudio.microsoft.com/).
-   - During installation, make sure to include the **Desktop development with C++** workload.
+## Build steps
 
-3. **CMake**:
-   - Download and install from [cmake.org](https://cmake.org/download/).
+### 1. Clone / open project
 
-4. **OpenSSL**:
-   - You will need OpenSSL to build the plugin. Follow the instructions below to install it.
+```
+git clone https://github.com/pijanydrwal/NppImapDraft.git
+cd NppImapDraft
+```
 
-### Installing OpenSSL
+Open `NppImapDraft.vcxproj` in Visual Studio.
 
-1. Download the installer for OpenSSL from [slproweb.com](https://slproweb.com/products/Win32OpenSSL.html).
-2. Run the installer and follow the prompts to complete the installation.
-3. After installation, add the OpenSSL bin directory to your system's PATH environment variable, which is typically located at `C:\Program Files\OpenSSL-Win64\bin` (for 64-bit systems).
+### 2. Configure OpenSSL paths (if using SSL)
 
-### Visual Studio Setup
+In Visual Studio project properties:
+- **C/C++ > Additional Include Directories**: add `C:\OpenSSL-Win64\include`
+- **Linker > Additional Library Directories**: add `C:\OpenSSL-Win64\lib`
 
-1. Open Visual Studio.
-2. Clone this repository:
-   ```bash
-   git clone https://github.com/pijanydrwal/NppImapDraft.git
-   ```
-3. Open the `NppImapDraft` solution file (`NppImapDraft.sln`) in Visual Studio.
+Or define `IMAP_NO_SSL` in **C/C++ > Preprocessor Definitions** to skip SSL entirely
+(plugin will only work with unencrypted IMAP on port 143).
 
-### Building the Project
+### 3. Build
 
-To compile the `NppImapDraft.dll`, follow these steps:
+- Configuration: **Release | x64** (for 64-bit Notepad++) or **Release | Win32** (for 32-bit)
+- Build Solution (Ctrl+Shift+B)
+- Output: `x64\Release\NppImapDraft.dll`
 
-1. In Visual Studio, select the desired build configuration (Debug/Release) from the toolbar.
-2. Right-click on the solution in the Solution Explorer and select **Build**.
-3. Once the build completes, the output DLL can be found in the `Debug` or `Release` folder inside the project directory, depending on the selected configuration.
+### 4. Install
 
-### Installation of the DLL
+Copy `NppImapDraft.dll` to:
+```
+%APPDATA%\Notepad++\plugins\NppImapDraft\NppImapDraft.dll
+```
+or:
+```
+C:\Program Files\Notepad++\plugins\NppImapDraft\NppImapDraft.dll
+```
 
-To install the compiled DLL into Notepad++, follow these steps:
+If you used OpenSSL, also copy `libssl-3-x64.dll` and `libcrypto-3-x64.dll`
+from OpenSSL bin folder to the same plugin directory.
 
-1. Locate the compiled `NppImapDraft.dll` file.
-2. Copy the DLL file.
-3. Navigate to your Notepad++ installation directory, typically located at:
-   ```
-   C:\Program Files\Notepad++\plugins\
-   ```
-4. Create a new folder named `NppImapDraft` if it does not exist.
-5. Paste the `NppImapDraft.dll` file into the `NppImapDraft` folder.
+### 5. Restart Notepad++
 
-### Conclusion
+The plugin appears under **Plugins > NppImapDraft** with 3 menu items:
+- **Sync All Open Files to IMAP Drafts** - uploads all open tabs
+- **Sync Current File** - uploads just the active tab
+- **Settings...** - configure IMAP server, credentials, folder
 
-You have successfully built and installed the `NppImapDraft.dll` plugin for Notepad++. Launch Notepad++ to see the plugin in action!
+## Settings
+
+In the Settings dialog:
+- **IMAP Server** - e.g. `imap.gmail.com`
+- **Port** - 993 (SSL) or 143 (plain)
+- **Username** - your full email address
+- **Password** - your email password or app password
+- **Drafts Folder** - usually `Drafts` (Gmail uses `[Gmail]/Drafts`)
+- **Use SSL/TLS** - check for port 993
+- **Auto-detect server** - fills server from email domain
+- **Test connection** - verifies settings before saving
+
+## Gmail notes
+
+- Enable IMAP in Gmail settings
+- Use an App Password (not your regular password)
+- Drafts folder name: `[Gmail]/Szkice` (Polish) or `[Gmail]/Drafts` (English)
+
+## Compilation without Visual Studio (MSBuild CLI)
+
+```bat
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+msbuild NppImapDraft.vcxproj /p:Configuration=Release /p:Platform=x64
+```
