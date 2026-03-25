@@ -1,18 +1,39 @@
-#ifndef EMAILMESSAGE_H
-#define EMAILMESSAGE_H
+#ifndef EMAIL_MESSAGE_H
+#define EMAIL_MESSAGE_H
 
 #include <string>
+#include <vector>
+#include <ctime>
+
+struct EmailAttachment {
+    std::string filename;
+    std::string content;  // base64 encoded
+    std::string mimeType;
+};
 
 class EmailMessage {
 public:
-    std::string to;
-    std::string from;
     std::string subject;
-    std::string date;
-    std::string body;
+    std::string from;
+    std::string to;
+    std::string body;          // plain text body
+    std::string htmlBody;      // optional HTML body
+    std::vector<EmailAttachment> attachments;
+    time_t date = 0;
 
-    EmailMessage(const std::string& to, const std::string& from, const std::string& subject, const std::string& date, const std::string& body)
-        : to(to), from(from), subject(subject), date(date), body(body) {}
+    EmailMessage() { date = time(nullptr); }
+
+    // Build RFC 2822 / EML string suitable for IMAP APPEND
+    std::string toEML() const;
+
+    // Create from Notepad++ buffer
+    static EmailMessage fromBuffer(const std::string& filename,
+                                   const std::string& content);
+
+private:
+    static std::string formatDate(time_t t);
+    static std::string encodeBase64(const std::string& data);
+    static std::string generateMsgId();
 };
 
-#endif // EMAILMESSAGE_H
+#endif // EMAIL_MESSAGE_H
