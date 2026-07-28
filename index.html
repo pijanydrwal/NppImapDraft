@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIME ENGINE - Analiza Czasu Życia</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #121212;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --text-tertiary: #606060;
+            --accent-gold: #ffd700;
+            --accent-red: #ff4444;
+            --accent-green: #44ff44;
+            --accent-blue: #4444ff;
+            --accent-purple: #aa44ff;
+            --border-color: #333333;
+            --grid-color: #222222;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.2;
+            font-size: 12px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .container { max-width: 1600px; margin: 0 auto; padding: 10px; }
+        header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 2px solid var(--accent-gold);
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 24px;
+            color: var(--accent-gold);
+            text-shadow: 0 0 10px var(--accent-gold);
+            margin-bottom: 5px;
+            letter-spacing: 3px;
+        }
+        header p {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+        .form-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label {
+            color: var(--accent-gold);
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .form-group input {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 5px var(--accent-gold);
+        }
+        .form-group input:disabled {
+            background: var(--bg-secondary);
+            color: var(--text-tertiary);
+            cursor: not-allowed;
+        }
+        .submit-btn {
+            grid-column: span 3;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #cc9900 100%);
+            color: var(--bg-primary);
+            border: none;
+            padding: 12px 20px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px var(--accent-gold);
+        }
+        .error-message {
+            grid-column: span 3;
+            color: var(--accent-red);
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid var(--accent-red);
+            display: none;
+        }
+        .dashboard { display: none; }
+        .dashboard.active { display: block; }
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+            padding: 15px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .section-header h2 {
+            font-size: 14px;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .section-header .count {
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            font-size: 11px;
+        }
+        .card-header {
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+        .card-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--accent-gold);
+            margin-bottom: 3px;
+        }
+        .card-label { color: var(--text-secondary); font-size: 10px; }
+        .card-subvalue { color: var(--text-secondary); font-size: 11px; margin-top: 3px; }
+        .progress-container {
+            margin-top: 5px;
+            height: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        .progress-bar.green { background: linear-gradient(90deg, var(--accent-green), #22aa22); }
+        .progress-bar.red { background: linear-gradient(90deg, var(--accent-red), #aa2222); }
+        .progress-bar.blue { background: linear-gradient(90deg, var(--accent-blue), #2222aa); }
+        .progress-bar.purple { background: linear-gradient(90deg, var(--accent-purple), #6622aa); }
+        .progress-text { font-size: 9px; color: var(--text-secondary); margin-top: 2px; text-align: right; }
+        .list-item {
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 11px;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item strong { color: var(--accent-gold); }
+        .list-item span { color: var(--text-secondary); }
+        .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 10px; }
+        .comparison-cell {
+            padding: 5px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .comparison-header {
+            background: var(--bg-secondary);
+            font-weight: bold;
+            color: var(--accent-blue);
+        }
+        .highlight {
+            background: rgba(255, 215, 0, 0.1);
+            border-left: 3px solid var(--accent-gold);
+            padding: 8px 12px;
+            margin: 5px 0;
+            font-size: 11px;
+        }
+        .highlight strong { color: var(--accent-gold); }
+        .cookie-notice {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
+            padding: 10px;
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+        .cookie-notice button {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            border: none;
+            padding: 5px 10px;
+            font-family: inherit;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        @media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) {
+            .form-section { grid-template-columns: 1fr; }
+            .submit-btn { grid-column: span 1; }
+            .error-message { grid-column: span 1; }
+            .grid-3 { grid-template-columns: 1fr; }
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TIME ENGINE</h1>
+            <p>ALGORYTMICZNY SILNIK ANALIZY CZASU ŻYCIA | COMPREHENSIVE TIMELINE ANALYTICS</p>
+        </header>
+        <section class="form-section">
+            <div class="form-group">
+                <label for="birthDate">DATA URODZENIA *</label>
+                <input type="date" id="birthDate" required>
+            </div>
+            <div class="form-group">
+                <label for="marriageDate">DATA ŚLUBU</label>
+                <input type="date" id="marriageDate" disabled>
+            </div>
+            <div class="form-group">
+                <label for="divorceDate">DATA ROZWODU</label>
+                <input type="date" id="divorceDate" disabled>
+            </div>
+            <button class="submit-btn" onclick="analyze()">URUCHOM ANALIZĘ</button>
+            <div class="error-message" id="errorMessage"></div>
+        </section>
+        <div class="dashboard" id="dashboard">
+            <section class="section">
+                <div class="section-header">
+                    <span>⏱️</span>
+                    <h2>ALGORYTMICZNY CZAS ŻYCIA</h2>
+                    <span class="count">12 PUNKTÓW</span>
+                </div>
+                <div class="grid grid-4">
+                    <div class="card">
+                        <div class="card-header">DOKŁADNY WIEK</div>
+                        <div class="card-value" id="exactAge"></div>
+                        <div class="card-label">LATA / MIESIĄCE / DNI</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">CAŁKOWITY CZAS</div>
+                        <div class="card-value" id="totalDays"></div>
+                        <div class="card-label">DNI ŻYCIA</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">UDERZENIA SERCA</div>
+                        <div class="card-value" id="heartbeats"></div>
+                        <div class="card-label">~80 BPM</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">ODDECHY</div>
+                        <div class="card-value" id="breaths"></div>
+                        <div class="card-label">~16/MIN</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">GODZINY ŻYCIA</div>
+                        <div class="card-value" id="totalHours"></div>
+                        <div class="card-label">ŁĄCZNIE</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">MINUTY ŻYCIA</div>
+                        <div class="card-value" id="totalMinutes"></div>
+                        <div class="card-label">ŁĄCZNIE</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">SEKUNDY ŻYCIA</div>
+                        <div class="card-value" id="totalSeconds"></div>
+                        <div class="card-label">ŁĄCZNIE</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">DZIEŃ TYGODNIA</div>
+                        <div class="card-value" id="birthDayOfWeek"></div>
+                        <div class="card-label">URODZENIA</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">% ROKU UKOŃCZONY</div>
+                        <div class="card-value" id="yearProgress"></div>
+                        <div class="progress-container">
+                            <div class="progress-bar green" id="yearProgressBar"></div>
+                        </div>
+                        <div class="progress-text" id="yearProgressText"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">ZNAK ZODIAKU</div>
+                        <div class="card-value" id="zodiacSign"></div>
+                        <div class="card-label">ZACHODNI</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">ZNAK CHIŃSKI</div>
+                        <div class="card-value" id="chineseZodiac"></div>
+                        <div class="card-label">12-ZWierząt</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">FAZA KSIĘŻYCA</div>
+                        <div class="card-value" id="moonPhase"></div>
+                        <div class="card-label">PRZYBLIŻONA</div>
+                    </div>
+                </div>
+            </section>
+            <section class="section">
+                <div class="section-header">
+                    <span>🏛️</span>
+                    <h2>RELATYWISTYKA HISTORYCZNA</h2>
+                    <span class="count">15 PUNKTÓW</span>
+                </div>
+                <div class="grid grid-2">
+                    <div>
+                        <div class="card-header">CO ZNANO GDY SIĘ URODZIŁEŚ</div>
+                        <div id="knownAtBirth"></div>
+                    </div>
+                    <div>
+                        <div class="card-header">OD CZEGO JESTEŚ STARSZY</div>
+                        <div id="olderThan"></div>
+                    </div>
+                </div>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <div class="card-header">NAJBLIŻSZE WYDARZENIE</div>
+                        <div class="card-value" id="closestEvent"></div>
+                        <div class="card-subvalue" id="closestEventDistance"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">BLIŻEJ DO</div>
+                        <div class="card-value" id="closerTo"></div>
+                        <div class="card-subvalue" id="closerToDetails"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">CHRONOLOGIA RELATYWNA</div>
+                        <div class="card-value" id="relativeChronology"></div>
+                        <div class="card-subvalue" id="relativeChronologyDetails"></div>
+                    </div>
+                </div>
+                <div class="card-header" style="margin-top: 15px;">ODLEGŁOŚCI DO WYDARZEŃ (DNI)</div>
+                <div class="comparison-grid">
+                    <div class="comparison-cell comparison-header">WYDARZENIE</div>
+                    <div class="comparison-cell comparison-header">DNI PRZED/PO</div>
+                    <div id="eventDistances"></div>
+                </div>
+            </section>
+            <section class="section" id="relationshipSection">
+                <div class="section-header">
+                    <span>💍</span>
+                    <h2>ANALIZA RELACJI</h2>
+                    <span class="count">8 PUNKTÓW</span>
+                </div>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <div class="card-header">CZAS TRWANIA</div>
+                        <div class="card-value" id="relationshipDuration"></div>
+                        <div class="card-label" id="relationshipDurationLabel"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">% ŻYCIA W ZWIAZKU</div>
+                        <div class="card-value" id="relationshipPercentage"></div>
+                        <div class="progress-container">
+                            <div class="progress-bar purple" id="relationshipPercentageBar"></div>
+                        </div>
+                        <div class="progress-text" id="relationshipPercentageText"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">PORÓWNANIE DO ER</div>
+                        <div class="card-value" id="eraComparison"></div>
+                        <div class="card-subvalue" id="eraComparisonDetails"></div>
+                    </div>
+                </div>
+                <div class="grid grid-2" id="marriageDivorceDays">
+                    <div class="card">
+                        <div class="card-header">DNI OD ŚLUBU</div>
+                        <div class="card-value" id="daysSinceMarriage"></div>
+                        <div class="card-label">DO DZIŚ</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">DNI OD ROZWODU</div>
+                        <div class="card-value" id="daysSinceDivorce"></div>
+                        <div class="card-label">DO DZIŚ</div>
+                    </div>
+                </div>
+                <div id="marriageDayOfWeek" class="card">
+                    <div class="card-header">DZIEŃ TYGODNIA ŚLUBU</div>
+                    <div class="card-value"></div>
+                </div>
+                <div id="divorceDayOfWeek" class="card">
+                    <div class="card-header">DZIEŃ TYGODNIA ROZWODU</div>
+                    <div class="card-value"></div>
+                </div>
+            </section>
+            <section class="section">
+                <div class="section-header">
+                    <span>🔮</span>
+                    <h2>DATA SCIENCE I PREDYKCJA</h2>
+                    <span class="count">10 PUNKTÓW</span>
+                </div>
+                <div class="grid grid-4">
+                    <div class="card">
+                        <div class="card-header">COUNTDOWN 10K DNI</div>
+                        <div class="card-value" id="countdown10k"></div>
+                        <div class="card-label">POZOSTAŁO</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">COUNTDOWN 20K DNI</div>
+                        <div class="card-value" id="countdown20k"></div>
+                        <div class="card-label">POZOSTAŁO</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">COUNTDOWN 1MLD SEK</div>
+                        <div class="card-value" id="countdown1bSeconds"></div>
+                        <div class="card-label">POZOSTAŁO</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">COUNTDOWN 15MLN MIN</div>
+                        <div class="card-value" id="countdown15mMinutes"></div>
+                        <div class="card-label">POZOSTAŁO</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">RELATYWNOŚĆ WIEKU</div>
+                        <div class="card-value" id="ageRelativity"></div>
+                        <div class="card-label">X RAZY STARSZY</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">POSTĘP DO ŚREDNIEJ</div>
+                        <div class="card-value" id="lifeExpectancyProgress"></div>
+                        <div class="progress-container">
+                            <div class="progress-bar blue" id="lifeExpectancyProgressBar"></div>
+                        </div>
+                        <div class="progress-text" id="lifeExpectancyProgressText"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">SZANSA NA DOŻYCIE</div>
+                        <div class="card-value" id="survivalChance"></div>
+                        <div class="card-label">PROCENTOWO</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">WIEK IPHONE'A</div>
+                        <div class="card-value" id="iphoneAgeComparison"></div>
+                        <div class="card-label">RELATYWNY</div>
+                    </div>
+                </div>
+            </section>
+            <section class="section">
+                <div class="section-header">
+                    <span>🎯</span>
+                    <h2>CIEKAWOSTKI PERSONALIZOWANE</h2>
+                    <span class="count">10+ PUNKTÓW</span>
+                </div>
+                <div class="grid grid-2">
+                    <div>
+                        <div class="card-header">WYDARZENIA W TYM WIEKU</div>
+                        <div id="eventsAtSameAge"></div>
+                    </div>
+                    <div>
+                        <div class="card-header">WYDARZENIA Z TEGO ROKU</div>
+                        <div id="eventsSameYear"></div>
+                    </div>
+                </div>
+                <div class="grid grid-3">
+                    <div class="card">
+                        <div class="card-header">TECHNOLOGIE</div>
+                        <div id="techAnalysis"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">ERY POLITYCZNE</div>
+                        <div id="politicalEraAnalysis"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">WIEK W RÓŻNYCH ERACH</div>
+                        <div id="ageInEras"></div>
+                    </div>
+                </div>
+            </section>
+            <section class="section">
+                <div class="section-header">
+                    <span>📊</span>
+                    <h2>STATYSTYKI ROZSZERZONE</h2>
+                    <span class="count">10 PUNKTÓW</span>
+                </div>
+                <div class="grid grid-4">
+                    <div class="card">
+                        <div class="card-header">SEKUNDY NA DZIEŃ</div>
+                        <div class="card-value" id="secondsPerDay"></div>
+                        <div class="card-label">ŚREDNIO</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">UDERZENIA/DZIEŃ</div>
+                        <div class="card-value" id="heartbeatsPerDay"></div>
+                        <div class="card-label">~80 BPM</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">ODDECHY/DZIEŃ</div>
+                        <div class="card-value" id="breathsPerDay"></div>
+                        <div class="card-label">~16/MIN</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">DNI DO 100 LAT</div>
+                        <div class="card-value" id="daysTo100"></div>
+                        <div class="card-label">POZOSTAŁO</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">TYGODNIE ŻYCIA</div>
+                        <div class="card-value" id="totalWeeks"></div>
+                        <div class="card-label">ŁĄCZNIE</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">MIESIĄCE ŻYCIA</div>
+                        <div class="card-value" id="totalMonths"></div>
+                        <div class="card-label">ŁĄCZNIE</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">LATA SKOŃCZONE</div>
+                        <div class="card-value" id="fullYears"></div>
+                        <div class="card-label">PEŁNE</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">LATA ZWROTNICOWE</div>
+                        <div class="card-value" id="tropicalYears"></div>
+                        <div class="card-label">ASTRONOMICZNE</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <div class="cookie-notice" id="cookieNotice">
+        <span>🍪 Ta strona używa cookies do zapamiętania Twoich danych. Kliknij AKCEPTUJ, aby zapisać wprowadzone daty.</span>
+        <button onclick="acceptCookies()">AKCEPTUJ</button>
+    </div>
+    <script>
+        // ============================================
+        // DATABASES - INLINE JSON
+        // ============================================
+
+        const historicalEvents = [
+            { name: "Chrzest Polski", date: "0966-04-14", category: "polityczne", importance: 10 },
+            { name: "Bitwa pod Grunwaldem", date: "1410-07-15", category: "wojna", importance: 10 },
+            { name: "Odkrycie Ameryki", date: "1492-10-12", category: "świat", importance: 10 },
+            { name: "Reformacja", date: "1517-10-31", category: "religia", importance: 9 },
+            { name: "Unia Lubelska", date: "1569-07-01", category: "polityczne", importance: 9 },
+            { name: "Potop Szwedzki", date: "1655-07-25", category: "wojna", importance: 8 },
+            { name: "Konstytucja 3 Maja", date: "1791-05-03", category: "polityczne", importance: 10 },
+            { name: "Rozbiory Polski", date: "1795-10-24", category: "polityczne", importance: 10 },
+            { name: "Kongres Wiedeński", date: "1815-06-09", category: "polityczne", importance: 8 },
+            { name: "Powstanie Listopadowe", date: "1830-11-29", category: "wojna", importance: 9 },
+            { name: "Powstanie Styczniowe", date: "1863-01-22", category: "wojna", importance: 9 },
+            { name: "Odkrycie Polonu i Radu", date: "1898-07-13", category: "nauka", importance: 8 },
+            { name: "I Wojna Światowa - Start", date: "1914-07-28", category: "wojna", importance: 10 },
+            { name: "Odzyskanie Niepodległości", date: "1918-11-11", category: "polityczne", importance: 10 },
+            { name: "Traktat Wersalski", date: "1919-06-28", category: "polityczne", importance: 9 },
+            { name: "II Rzeczpospolita", date: "1918-11-11", category: "polityczne", importance: 10 },
+            { name: "Wybuch II Wojny Światowej", date: "1939-09-01", category: "wojna", importance: 10 },
+            { name: "Powstanie Warszawskie", date: "1944-08-01", category: "wojna", importance: 10 },
+            { name: "Zakończenie II Wojny Światowej", date: "1945-05-08", category: "wojna", importance: 10 },
+            { name: "PRL - Powstanie", date: "1947-07-22", category: "polityczne", importance: 9 },
+            { name: "Plan Marshalla", date: "1948-04-03", category: "ekonomia", importance: 8 },
+            { name: "Powstanie NATO", date: "1949-04-04", category: "polityczne", importance: 9 },
+            { name: "Wojna Koreańska", date: "1950-06-25", category: "wojna", importance: 8 },
+            { name: "Śmierć Stalina", date: "1953-03-05", category: "polityczne", importance: 9 },
+            { name: "Powstanie Poznańskie", date: "1956-06-28", category: "polityczne", importance: 8 },
+            { name: "Kryzys Kubański", date: "1962-10-16", category: "polityczne", importance: 9 },
+            { name: "Lądowanie na Księżycu", date: "1969-07-20", category: "technologia", importance: 10 },
+            { name: "Grudzień 1970", date: "1970-12-14", category: "polityczne", importance: 8 },
+            { name: "Stan Wojenny w Polsce", date: "1981-12-13", category: "polityczne", importance: 10 },
+            { name: "Katastrofa Czarnobyla", date: "1986-04-26", category: "katastrofa", importance: 10 },
+            { name: "Upadek Muru Berlińskiego", date: "1989-11-09", category: "polityczne", importance: 10 },
+            { name: "Powstanie Onet.pl", date: "1996-03-01", category: "technologia", importance: 7 },
+            { name: "Start Facebook", date: "2004-02-04", category: "technologia", importance: 8 },
+            { name: "Polska w UE", date: "2004-05-01", category: "polityczne", importance: 10 },
+            { name: "Premiera iPhone", date: "2007-06-29", category: "technologia", importance: 9 },
+            { name: "Katastrofa Smoleńska", date: "2010-04-10", category: "katastrofa", importance: 9 },
+            { name: "Katastrofa Hindenburga", date: "1937-05-06", category: "katastrofa", importance: 8 },
+            { name: "Premiera Pythona", date: "1991-02-20", category: "technologia", importance: 7 },
+            { name: "Premiera Windows 95", date: "1995-08-24", category: "technologia", importance: 7 },
+            { name: "Premiera Google", date: "1998-09-04", category: "technologia", importance: 8 },
+            { name: "Atak na WTC", date: "2001-09-11", category: "katastrofa", importance: 10 },
+            { name: "Pandemia COVID-19", date: "2020-03-11", category: "zdrowie", importance: 10 },
+            { name: "Wojna w Ukrainie", date: "2022-02-24", category: "wojna", importance: 10 },
+            { name: "Śmierć Jana Pawła II", date: "2005-04-02", category: "religia", importance: 9 },
+            { name: "Premiera Bitcoina", date: "2009-01-03", category: "ekonomia", importance: 8 },
+            { name: "Lądowanie Łazika Perseverance", date: "2021-02-18", category: "technologia", importance: 7 }
+        ];
+
+        const eraDurations = {
+            "II Rzeczpospolita": { start: "1918-11-11", end: "1939-09-01", days: 7569 },
+            "PRL": { start: "1947-07-22", end: "1989-12-29", days: 15651 },
+            "III Rzeczpospolita": { start: "1989-12-29", end: null, days: null },
+            "Powstanie Warszawskie": { start: "1944-08-01", end: "1944-10-02", days: 63 },
+            "Budowa Wieży Eiffla": { start: "1887-01-28", end: "1889-03-31", days: 730 },
+            "II Wojna Światowa": { start: "1939-09-01", end: "1945-05-08", days: 2074 },
+            "Zimna Wojna": { start: "1947-03-12", end: "1991-12-26", days: 17444 },
+            "ZSRR": { start: "1922-12-30", end: "1991-12-26", days: 24549 }
+        };
+
+        const lifeMilestones = {
+            averageLifespan: { male: 72.5, female: 81.2, combined: 76.85 },
+            pregnancyDuration: 280,
+            heartbeatRate: 80,
+            breathRate: 16,
+            secondsPerDay: 86400,
+            minutesPerDay: 1440,
+            hoursPerDay: 24
+        };
+
+        const zodiacSigns = [
+            { name: "Baran", start: "03-21", end: "04-19", element: "Ogień" },
+            { name: "Byk", start: "04-20", end: "05-20", element: "Ziemia" },
+            { name: "Bliźnięta", start: "05-21", end: "06-20", element: "Powietrze" },
+            { name: "Rak", start: "06-21", end: "07-22", element: "Woda" },
+            { name: "Lew", start: "07-23", end: "08-22", element: "Ogień" },
+            { name: "Panna", start: "08-23", end: "09-22", element: "Ziemia" },
+            { name: "Waga", start: "09-23", end: "10-22", element: "Powietrze" },
+            { name: "Skorpion", start: "10-23", end: "11-21", element: "Woda" },
+            { name: "Strzelec", start: "11-22", end: "12-21", element: "Ogień" },
+            { name: "Koziorożec", start: "12-22", end: "01-19", element: "Ziemia" },
+            { name: "Wodnik", start: "01-20", end: "02-18", element: "Powietrze" },
+            { name: "Ryby", start: "02-19", end: "03-20", element: "Woda" }
+        ];
+
+        const chineseZodiac = [
+            { name: "Szczur", year: 0 },
+            { name: "Bawół", year: 1 },
+            { name: "Tygrys", year: 2 },
+            { name: "Królik", year: 3 },
+            { name: "Smok", year: 4 },
+            { name: "Wąż", year: 5 },
+            { name: "Koń", year: 6 },
+            { name: "Koza", year: 7 },
+            { name: "Małpa", year: 8 },
+            { name: "Kogut", year: 9 },
+            { name: "Pies", year: 10 },
+            { name: "Świnia", year: 11 }
+        ];
+
+        const moonPhases = [
+            "Nów", "Młody Księżyc", "Pierwsza kwadra", "Księżyc przybierający",
+            "Pełnia", "Księżyc ubywający", "Ostatnia kwadra", "Księżyc stary"
+        ];
+
+        const techMilestones = [
+            { name: "Premiera Pythona", date: "1991-02-20" },
+            { name: "Premiera Windows 95", date: "1995-08-24" },
+            { name: "Powstanie Onet.pl", date: "1996-03-01" },
+            { name: "Premiera Google", date: "1998-09-04" },
+            { name: "Start Facebook", date: "2004-02-04" },
+            { name: "Premiera iPhone", date: "2007-06-29" },
+            { name: "Premiera Bitcoina", date: "2009-01-03" },
+            { name: "Premiera iPad", date: "2010-04-03" },
+            { name: "Premiera Instagram", date: "2010-10-06" },
+            { name: "Premiera TikTok", date: "2016-09-01" }
+        ];
+
+        // ============================================
+        // FORM LOGIC
+        // ============================================
+
+        const birthDateInput = document.getElementById('birthDate');
+        const marriageDateInput = document.getElementById('marriageDate');
+        const divorceDateInput = document.getElementById('divorceDate');
+        const errorMessage = document.getElementById('errorMessage');
+        const dashboard = document.getElementById('dashboard');
+        const cookieNotice = document.getElementById('cookieNotice');
+
+        // Enable/disable marriage date based on birth date
+        birthDateInput.addEventListener('change', function() {
+            if (this.value) {
+                marriageDateInput.disabled = false;
+                marriageDateInput.min = this.value;
+                marriageDateInput.max = new Date().toISOString().split('T')[0];
+            } else {
+                marriageDateInput.disabled = true;
+                marriageDateInput.value = '';
+                divorceDateInput.disabled = true;
+                divorceDateInput.value = '';
+            }
+        });
+
+        // Enable/disable divorce date based on marriage date
+        marriageDateInput.addEventListener('change', function() {
+            if (this.value) {
+                divorceDateInput.disabled = false;
+                divorceDateInput.min = this.value;
+                divorceDateInput.max = new Date().toISOString().split('T')[0];
+            } else {
+                divorceDateInput.disabled = true;
+                divorceDateInput.value = '';
+            }
+        });
+
+        // Load saved data from cookies
+        function loadCookies() {
+            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                const [key, value] = cookie.trim().split('=');
+                acc[key] = value;
+                return acc;
+            }, {});
+
+            if (cookies.birthDate) {
+                birthDateInput.value = cookies.birthDate;
+                marriageDateInput.disabled = false;
+                if (cookies.marriageDate) {
+                    marriageDateInput.value = cookies.marriageDate;
+                    divorceDateInput.disabled = false;
+                    if (cookies.divorceDate) {
+                        divorceDateInput.value = cookies.divorceDate;
+                    }
+                }
+            }
+        }
+
+        // Save data to cookies
+        function saveCookies() {
+            const expires = new Date();
+            expires.setFullYear(expires.getFullYear() + 10);
+            
+            document.cookie = `birthDate=${birthDateInput.value}; expires=${expires.toUTCString()}; path=/`;
+            document.cookie = `marriageDate=${marriageDateInput.value || ''}; expires=${expires.toUTCString()}; path=/`;
+            document.cookie = `divorceDate=${divorceDateInput.value || ''}; expires=${expires.toUTCString()}; path=/`;
+        }
+
+        function acceptCookies() {
+            saveCookies();
+            cookieNotice.style.display = 'none';
+        }
+
+        // ============================================
+        // VALIDATION
+        // ============================================
+
+        function validateDates() {
+            const birthDate = new Date(birthDateInput.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Check if birth date is valid and in the past
+            if (!birthDateInput.value || birthDate >= today) {
+                showError("Do chuja, popraw daty. Logika leży. Urodzenie musi być w przeszłości!");
+                return false;
+            }
+
+            // Check marriage date if provided
+            if (marriageDateInput.value) {
+                const marriageDate = new Date(marriageDateInput.value);
+                if (marriageDate <= birthDate || marriageDate >= today) {
+                    showError("Do chuja, popraw daty. Logika leży. Ślub musi być po urodzeniu i w przeszłości!");
+                    return false;
+                }
+            }
+
+            // Check divorce date if provided
+            if (divorceDateInput.value) {
+                const divorceDate = new Date(divorceDateInput.value);
+                const marriageDate = new Date(marriageDateInput.value);
+                if (!marriageDateInput.value) {
+                    showError("Do chuja, popraw daty. Logika leży. Rozwód wymaga daty ślubu!");
+                    return false;
+                }
+                if (divorceDate <= marriageDate || divorceDate >= today) {
+                    showError("Do chuja, popraw daty. Logika leży. Rozwód musi być po ślubie i w przeszłości!");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            dashboard.classList.remove('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ============================================
+        // DATE UTILITIES
+        // ============================================
+
+        function parseDate(dateString) {
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function getDaysBetween(date1, date2) {
+            const diffTime = Math.abs(date2 - date1);
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function getAge(birthDate, targetDate = new Date()) {
+            const birth = new Date(birthDate);
+            const target = new Date(targetDate);
+            
+            let years = target.getFullYear() - birth.getFullYear();
+            let months = target.getMonth() - birth.getMonth();
+            let days = target.getDate() - birth.getDate();
+
+            if (days < 0) {
+                months--;
+                const lastMonth = new Date(target.getFullYear(), target.getMonth(), 0);
+                days += lastMonth.getDate();
+            }
+
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+
+            return { years, months, days };
+        }
+
+        function getDayOfWeek(date) {
+            const days = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+            return days[date.getDay()];
+        }
+
+        function getZodiacSign(date) {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            
+            for (const sign of zodiacSigns) {
+                const [startMonth, startDay] = sign.start.split('-').map(Number);
+                const [endMonth, endDay] = sign.end.split('-').map(Number);
+                
+                if ((month === startMonth && day >= startDay) || 
+                    (month === endMonth && day <= endDay) ||
+                    (month > startMonth && month < endMonth)) {
+                    return sign.name;
+                }
+            }
+            return "Nieznany";
+        }
+
+        function getChineseZodiac(year) {
+            return chineseZodiac[(year - 4) % 12].name;
+        }
+
+        function getMoonPhase(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const c = Math.floor(365.25 * year);
+            const e = Math.floor(30.6 * month);
+            const jd = c + e + day - 694039.09;
+            const phase = (jd / 29.53) % 8;
+            return moonPhases[Math.floor(phase)];
+        }
+
+        function formatDuration(days) {
+            const years = Math.floor(days / 365.25);
+            const remainingDays = Math.floor(days % 365.25);
+            const months = Math.floor(remainingDays / 30.44);
+            const remainingDaysFinal = Math.floor(remainingDays % 30.44);
+            return { years, months, days: remainingDaysFinal };
+        }
+
+        function formatCountdownDetailed(days) {
+            if (days < 0) return "MINĘŁO";
+            const hours = Math.floor(days * 24);
+            const minutes = Math.floor(hours * 60);
+            const seconds = Math.floor(minutes * 60);
+            return `${days}D / ${hours}H / ${minutes}M / ${seconds}S`;
+        }
+
+        // ============================================
+        // MAIN ANALYSIS FUNCTION
+        // ============================================
+
+        function analyze() {
+            if (!validateDates()) return;
+            saveCookies();
+            errorMessage.style.display = 'none';
+            dashboard.classList.add('active');
+
+            const birthDate = parseDate(birthDateInput.value);
+            const marriageDate = marriageDateInput.value ? parseDate(marriageDateInput.value) : null;
+            const divorceDate = divorceDateInput.value ? parseDate(divorceDateInput.value) : null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // SECTION 1: ALGORYTMICZNY CZAS ŻYCIA
+            const age = getAge(birthDate, today);
+            const totalDays = getDaysBetween(birthDate, today);
+            const totalHours = totalDays * 24;
+            const totalMinutes = totalHours * 60;
+            const totalSeconds = totalMinutes * 60;
+            const heartbeats = Math.floor(totalMinutes * lifeMilestones.heartbeatRate);
+            const breaths = Math.floor(totalMinutes * lifeMilestones.breathRate);
+            const birthDayOfWeek = getDayOfWeek(birthDate);
+            const yearStart = new Date(today.getFullYear(), 0, 1);
+            const yearEnd = new Date(today.getFullYear() + 1, 0, 1);
+            const yearProgressDays = getDaysBetween(yearStart, today);
+            const yearTotalDays = getDaysBetween(yearStart, yearEnd);
+            const yearProgress = ((yearProgressDays / yearTotalDays) * 100).toFixed(2);
+            const zodiacSign = getZodiacSign(birthDate);
+            const chineseZodiacSign = getChineseZodiac(birthDate.getFullYear());
+            const moonPhase = getMoonPhase(birthDate);
+
+            document.getElementById('exactAge').textContent = `${age.years}L ${age.months}M ${age.days}D`;
+            document.getElementById('totalDays').textContent = totalDays.toLocaleString();
+            document.getElementById('totalHours').textContent = totalHours.toLocaleString();
+            document.getElementById('totalMinutes').textContent = totalMinutes.toLocaleString();
+            document.getElementById('totalSeconds').textContent = totalSeconds.toLocaleString();
+            document.getElementById('heartbeats').textContent = heartbeats.toLocaleString();
+            document.getElementById('breaths').textContent = breaths.toLocaleString();
+            document.getElementById('birthDayOfWeek').textContent = birthDayOfWeek;
+            document.getElementById('yearProgress').textContent = `${yearProgress}%`;
+            document.getElementById('yearProgressBar').style.width = `${yearProgress}%`;
+            document.getElementById('yearProgressText').textContent = `${yearProgressDays}/${yearTotalDays} dni roku`;
+            document.getElementById('zodiacSign').textContent = zodiacSign;
+            document.getElementById('chineseZodiac').textContent = chineseZodiacSign;
+            document.getElementById('moonPhase').textContent = moonPhase;
+
+            // SECTION 2: RELATYWISTYKA HISTORYCZNA
+            const knownAtBirth = [];
+            const olderThan = [];
+            const eventDistances = [];
+
+            historicalEvents.forEach(event => {
+                const eventDate = parseDate(event.date);
+                const daysDiff = getDaysBetween(birthDate, eventDate);
+                eventDistances.push({ name: event.name, days: daysDiff, date: event.date });
+                if (eventDate < birthDate) knownAtBirth.push(event.name);
+                else olderThan.push(event.name);
+            });
+
+            eventDistances.sort((a, b) => Math.abs(a.days) - Math.abs(b.days));
+            const closestEvent = eventDistances[0];
+            const closestEventDays = Math.abs(closestEvent.days);
+
+            const darkEvents = historicalEvents.filter(e => e.category === 'polityczne' || e.category === 'wojna' || e.category === 'katastrofa');
+            const darkEventDistances = darkEvents.map(e => {
+                const eventDate = parseDate(e.date);
+                return { name: e.name, days: getDaysBetween(birthDate, eventDate), date: e.date };
+            }).sort((a, b) => Math.abs(a.days) - Math.abs(b.days)).slice(0, 3);
+
+            let closerTo = "";
+            let closerToDetails = "";
+            if (darkEventDistances.length >= 2) {
+                const event1 = darkEventDistances[0];
+                const event2 = darkEventDistances[1];
+                const diff1 = Math.abs(event1.days);
+                const diff2 = Math.abs(event2.days);
+                closerTo = diff1 < diff2 ? event1.name : event2.name;
+                closerToDetails = diff1 < diff2 ? `Bliżej do ${event1.name} niż ${event2.name}` : `Bliżej do ${event2.name} niż ${event1.name}`;
+            }
+
+            let relativeChronology = "";
+            let relativeChronologyDetails = "";
+            const facebookDate = parseDate("2004-02-04");
+            const onetDate = parseDate("1996-03-01");
+
+            if (birthDate < facebookDate) {
+                const daysAfterFacebook = getDaysBetween(facebookDate, birthDate);
+                relativeChronology = "Facebook powstał po Tobie";
+                relativeChronologyDetails = `Facebook powstał ${daysAfterFacebook} dni po Twoim urodzeniu`;
+            } else {
+                const daysBeforeFacebook = getDaysBetween(birthDate, facebookDate);
+                relativeChronology = "Facebook istniał już";
+                relativeChronologyDetails = `Facebook istniał już ${daysBeforeFacebook} dni gdy się urodziłeś`;
+            }
+
+            if (birthDate < onetDate) {
+                const daysAfterOnet = getDaysBetween(onetDate, birthDate);
+                relativeChronology += " | Onet powstał po Tobie";
+                relativeChronologyDetails += ` | Onet powstał ${daysAfterOnet} dni po Twoim urodzeniu`;
+            } else {
+                const daysBeforeOnet = getDaysBetween(birthDate, onetDate);
+                relativeChronology += " | Onet istniał już";
+                relativeChronologyDetails += ` | Onet istniał już ${daysBeforeOnet} dni gdy się urodziłeś`;
+            }
+
+            document.getElementById('knownAtBirth').innerHTML = knownAtBirth.length > 0 ?
+                knownAtBirth.slice(0, 10).map(e => `<div class="list-item"><strong>${e}</strong></div>`).join('') :
+                '<div class="list-item"><span>Brak wydarzeń</span></div>';
+            document.getElementById('olderThan').innerHTML = olderThan.length > 0 ?
+                olderThan.slice(0, 10).map(e => `<div class="list-item"><strong>${e}</strong></div>`).join('') :
+                '<div class="list-item"><span>Jesteś starszy od wszystkiego!</span></div>';
+            document.getElementById('closestEvent').textContent = closestEvent.name;
+            document.getElementById('closestEventDistance').textContent = `${closestEventDays} dni ${closestEvent.days > 0 ? 'po' : 'przed'}`;
+            document.getElementById('closerTo').textContent = closerTo;
+            document.getElementById('closerToDetails').textContent = closerToDetails;
+            document.getElementById('relativeChronology').textContent = relativeChronology;
+            document.getElementById('relativeChronologyDetails').textContent = relativeChronologyDetails;
+
+            let eventDistancesHTML = '';
+            eventDistances.slice(0, 20).forEach(event => {
+                const sign = event.days > 0 ? '+' : '';
+                eventDistancesHTML += `<div class="comparison-cell">${event.name}</div><div class="comparison-cell">${sign}${event.days} dni</div>`;
+            });
+            document.getElementById('eventDistances').innerHTML = eventDistancesHTML;
+
+            // SECTION 3: ANALIZA RELACJI
+            const relationshipSection = document.getElementById('relationshipSection');
+            if (marriageDate) {
+                relationshipSection.style.display = 'block';
+                const marriageDurationDays = getDaysBetween(marriageDate, divorceDate || today);
+                const marriageDuration = formatDuration(marriageDurationDays);
+                const relationshipPercentage = ((marriageDurationDays / totalDays) * 100).toFixed(2);
+
+                let eraComparison = "";
+                let eraComparisonDetails = "";
+                const longerThan = [];
+                const shorterThan = [];
+
+                Object.keys(eraDurations).forEach(eraName => {
+                    const era = eraDurations[eraName];
+                    if (era.days) {
+                        if (marriageDurationDays > era.days) longerThan.push(eraName);
+                        else shorterThan.push(eraName);
+                    }
+                });
+
+                if (longerThan.length > 0 && shorterThan.length > 0) {
+                    eraComparison = `Trwało dłużej niż ${longerThan[0]}`;
+                    eraComparisonDetails = `ale krócej niż ${shorterThan[0]}`;
+                } else if (longerThan.length > 0) {
+                    eraComparison = `Trwało dłużej niż ${longerThan.join(', ')}`;
+                    eraComparisonDetails = "Wszystkie porównywane ery były krótsze";
+                } else {
+                    eraComparison = `Trwało krócej niż ${shorterThan.join(', ')}`;
+                    eraComparisonDetails = "Wszystkie porównywane ery były dłuższe";
+                }
+
+                document.getElementById('relationshipDuration').textContent = `${marriageDuration.years}L ${marriageDuration.months}M ${marriageDuration.days}D`;
+                document.getElementById('relationshipDurationLabel').textContent = divorceDate ? "OD ŚLUBU DO ROZWODU" : "OD ŚLUBU DO DZIŚ";
+                document.getElementById('relationshipPercentage').textContent = `${relationshipPercentage}%`;
+                document.getElementById('relationshipPercentageBar').style.width = `${relationshipPercentage}%`;
+                document.getElementById('relationshipPercentageText').textContent = `${marriageDurationDays}/${totalDays} dni`;
+                document.getElementById('eraComparison').textContent = eraComparison;
+                document.getElementById('eraComparisonDetails').textContent = eraComparisonDetails;
+
+                document.getElementById('marriageDayOfWeek').innerHTML = `
+                    <div class="card-value">${getDayOfWeek(marriageDate)}</div>
+                    <div class="card-label">DZIEŃ ŚLUBU</div>
+                `;
+
+                if (divorceDate) {
+                    document.getElementById('marriageDivorceDays').style.display = 'grid';
+                    document.getElementById('daysSinceMarriage').textContent = getDaysBetween(marriageDate, today);
+                    document.getElementById('daysSinceDivorce').textContent = getDaysBetween(divorceDate, today);
+                    document.getElementById('divorceDayOfWeek').innerHTML = `
+                        <div class="card-value">${getDayOfWeek(divorceDate)}</div>
+                        <div class="card-label">DZIEŃ ROZWODU</div>
+                    `;
+                    document.getElementById('divorceDayOfWeek').style.display = 'block';
+                } else {
+                    document.getElementById('marriageDivorceDays').style.display = 'none';
+                    document.getElementById('divorceDayOfWeek').style.display = 'none';
+                }
+            } else {
+                relationshipSection.style.display = 'none';
+            }
+
+            // SECTION 4: DATA SCIENCE I PREDYKCJA
+            const daysTo10k = 10000 - totalDays;
+            const daysTo20k = 20000 - totalDays;
+            const secondsTo1b = 1000000000 - totalSeconds;
+            const minutesTo15m = 15000000 - totalMinutes;
+            const iphoneDate = parseDate("2007-06-29");
+            const iphoneAgeDays = getDaysBetween(iphoneDate, today);
+            const ageRelativity = (totalDays / iphoneAgeDays).toFixed(2);
+            const avgLifespanDays = lifeMilestones.averageLifespan.combined * 365.25;
+            const lifeExpectancyProgress = ((totalDays / avgLifespanDays) * 100).toFixed(2);
+            const survivalChance = ((1 - (totalDays / avgLifespanDays)) * 100).toFixed(2);
+
+            document.getElementById('countdown10k').textContent = formatCountdownDetailed(daysTo10k);
+            document.getElementById('countdown20k').textContent = formatCountdownDetailed(daysTo20k);
+            document.getElementById('countdown1bSeconds').textContent = formatCountdownDetailed(Math.floor(secondsTo1b / 86400));
+            document.getElementById('countdown15mMinutes').textContent = formatCountdownDetailed(Math.floor(minutesTo15m / 1440));
+            document.getElementById('ageRelativity').textContent = `${ageRelativity}x`;
+            document.getElementById('lifeExpectancyProgress').textContent = `${lifeExpectancyProgress}%`;
+            document.getElementById('lifeExpectancyProgressBar').style.width = `${Math.min(lifeExpectancyProgress, 100)}%`;
+            document.getElementById('lifeExpectancyProgressText').textContent = `${totalDays}/${Math.floor(avgLifespanDays)} dni`;
+            document.getElementById('survivalChance').textContent = `${survivalChance}%`;
+            document.getElementById('iphoneAgeComparison').textContent = `${ageRelativity}x`;
+
+            // SECTION 5: CIEKAWOSTKI PERSONALIZOWANE
+            const eventsAtSameAge = [];
+            const birthYear = birthDate.getFullYear();
+            const eventsSameYear = historicalEvents.filter(event => {
+                const eventDate = parseDate(event.date);
+                return eventDate.getFullYear() === birthYear;
+            }).map(e => e.name);
+
+            const techBeforeBirth = [];
+            const techAfterBirth = [];
+            techMilestones.forEach(tech => {
+                const techDate = parseDate(tech.date);
+                if (techDate < birthDate) techBeforeBirth.push(tech.name);
+                else techAfterBirth.push(tech.name);
+            });
+
+            const politicalEras = [];
+            Object.keys(eraDurations).forEach(eraName => {
+                const era = eraDurations[eraName];
+                if (era.start && era.end) {
+                    const eraStart = parseDate(era.start);
+                    const eraEnd = parseDate(era.end);
+                    if (birthDate >= eraStart && birthDate <= eraEnd) {
+                        politicalEras.push(eraName);
+                    }
+                }
+            });
+
+            const ageInEras = [];
+            Object.keys(eraDurations).forEach(eraName => {
+                const era = eraDurations[eraName];
+                if (era.days) {
+                    const eraAge = (totalDays / era.days).toFixed(2);
+                    ageInEras.push(`${eraName}: ${eraAge}x`);
+                }
+            });
+
+            document.getElementById('eventsAtSameAge').innerHTML = eventsAtSameAge.length > 0 ?
+                eventsAtSameAge.slice(0, 10).map(e => `<div class="list-item"><strong>${e}</strong></div>`).join('') :
+                '<div class="list-item"><span>Brak wydarzeń w tym wieku</span></div>';
+            document.getElementById('eventsSameYear').innerHTML = eventsSameYear.length > 0 ?
+                eventsSameYear.slice(0, 10).map(e => `<div class="list-item"><strong>${e}</strong></div>`).join('') :
+                '<div class="list-item"><span>Brak wydarzeń z tego roku</span></div>';
+            document.getElementById('techAnalysis').innerHTML = `
+                <div class="list-item"><strong>Przed Tobą:</strong> ${techBeforeBirth.join(', ')}</div>
+                <div class="list-item"><strong>Po Tobie:</strong> ${techAfterBirth.join(', ')}</div>
+            `;
+            document.getElementById('politicalEraAnalysis').innerHTML = politicalEras.length > 0 ?
+                politicalEras.map(e => `<div class="list-item"><strong>${e}</strong></div>`).join('') :
+                '<div class="list-item"><span>Brak er politycznych</span></div>';
+            document.getElementById('ageInEras').innerHTML = ageInEras.length > 0 ?
+                ageInEras.map(e => `<div class="list-item"><strong>${e}</strong></div>`).join('') :
+                '<div class="list-item"><span>Brak danych</span></div>';
+
+            // SECTION 6: STATYSTYKI ROZSZERZONE
+            const secondsPerDay = (totalSeconds / totalDays).toFixed(0);
+            const heartbeatsPerDay = (heartbeats / totalDays).toFixed(0);
+            const breathsPerDay = (breaths / totalDays).toFixed(0);
+            const daysTo100 = Math.max(0, 36525 - totalDays);
+            const totalWeeks = Math.floor(totalDays / 7);
+            const totalMonths = Math.floor(totalDays / 30.44);
+            const tropicalYears = (totalDays / 365.2422).toFixed(4);
+
+            document.getElementById('secondsPerDay').textContent = secondsPerDay.toLocaleString();
+            document.getElementById('heartbeatsPerDay').textContent = heartbeatsPerDay.toLocaleString();
+            document.getElementById('breathsPerDay').textContent = breathsPerDay.toLocaleString();
+            document.getElementById('daysTo100').textContent = daysTo100.toLocaleString();
+            document.getElementById('totalWeeks').textContent = totalWeeks.toLocaleString();
+            document.getElementById('totalMonths').textContent = totalMonths.toLocaleString();
+            document.getElementById('fullYears').textContent = age.years;
+            document.getElementById('tropicalYears').textContent = tropicalYears;
+
+            window.scrollTo({ top: 100, behavior: 'smooth' });
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        const today = new Date();
+        birthDateInput.max = today.toISOString().split('T')[0];
+        loadCookies();
+    </script>
+</body>
+</html>
